@@ -1,0 +1,78 @@
+name: Windows 10/11 Desktop Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-windows:
+    name: Build & Package Windows Desktop App (.exe / .msi)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build Web Frontend Assets
+        run: npm run build
+
+      - name: Read Version & Tag Information
+        id: version_info
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build and Package Windows Tauri Application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.version_info.outputs.tag }}
+          releaseName: 'Release ${{ steps.version_info.outputs.tag }} - Windows Screensaver Setup Manager'
+          releaseBody: |
+            ## 🖥️ 화면보호기설정 (Windows Screensaver Manager) ${{ steps.version_info.outputs.tag }}
+            
+            Windows 10 / 11 전용 화면 보호기 원클릭 설정 및 자동 배치 파일(.bat) 생성기 공식 배포본입니다.
+            
+            ### 📌 제공되는 설치 및 실행 파일
+            - **포터블 독립 실행 파일**: 무설치 즉시 실행 (.exe)
+            - **Windows 공식 설치 패키지**: 시스템 등록 설치형 (.msi / NSIS 인스톨러)
+            
+            ### 💡 주요 기능
+            - Windows 10/11 레지스트리(`HKCU\Control Panel\Desktop`) 및 시스템 화면 보호기 원클릭 즉시 적용
+            - 독립 실행형 자동 배치 파일(`.bat`) UTF-8 / CRLF 규격 자동 생성 및 다운로드
+            - 사내 PC 관리 및 자리비움 잠금 화면 자동화 배포
+            - 최신 버전 실시간 감지 및 자동 업데이트 알림 팝업창 탑재
+            
+            ---
+            *Developer: AhBiYout (AhBiYout-all)* | *Company: cisnet (http://www.cisnet.co.kr/)* | *Official Blog: https://ahbiyoutvibe.blogspot.com/*
+          releaseDraft: false
+          prerelease: false

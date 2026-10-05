@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "화면보호기설정",
+  "version": "1.1.0",
+  "identifier": "kr.co.cisnet.screensavergenerator",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:3036",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "화면보호기설정",
+        "width": 600,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "copyright": "Copyright © 2026 AhBiYout. All rights reserved.",
+    "publisher": "cisnet (AhBiYout)",
+    "category": "Utility",
+    "shortDescription": "Windows 화면 보호기 설정 관리자",
+    "longDescription": "Windows 10/11 화면 보호기 설정(종류, 대기 시간, 암호 잠금)을 원클릭으로 구성하고 자동 적용 및 배포용 .bat 배치 파일을 생성하는 유틸리티입니다."
+  }
+}

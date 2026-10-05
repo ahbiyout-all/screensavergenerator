@@ -1,0 +1,98 @@
+@echo off
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+echo ===================================================
+echo   AhBiYout Screensaver Setup - Automated Build
+echo ===================================================
+echo.
+
+set "TARGET_PORT=3036"
+set "INPUT_PORT="
+set /p "INPUT_PORT=Enter port number [Default 3036]: "
+if defined INPUT_PORT set "TARGET_PORT=!INPUT_PORT!"
+
+set "PORT=!TARGET_PORT!"
+echo.
+echo [Config] Target build port: !TARGET_PORT!
+echo.
+
+echo [1/6] Updating Tauri configuration port to !TARGET_PORT!...
+call node scripts/update-port.js !TARGET_PORT!
+if %errorlevel% neq 0 (
+    echo [Warning] Port update script failed, continuing with default configuration.
+)
+echo.
+
+if not exist "node_modules" (
+    echo [Info] node_modules not found. Installing dependencies...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo.
+        echo ERROR: Failed to install npm dependencies.
+        pause
+        exit /b 1
+    )
+    echo.
+)
+
+echo [2/6] Preparing app icon from Windows Screensaver Setup Generator.png...
+call node scripts/prepare-icon.js
+if %errorlevel% neq 0 (
+    echo [Warning] Icon preparation notice, continuing build with existing icons.
+)
+echo.
+
+echo [3/6] Extracting version from package.json...
+for /f "tokens=*" %%A in ('node -p "try { require('./package.json').version } catch(e) { '1.0.9' }"') do set "APP_VERSION=%%A"
+
+if "%APP_VERSION%"=="" set "APP_VERSION=1.0.9"
+
+echo Identified Target Version: v%APP_VERSION%
+echo.
+
+echo [4/6] Cleaning previous build artifacts and syncing Rust dependencies...
+call npm run clean
+if %errorlevel% neq 0 (
+    echo.
+    echo ERROR: Failed to clean build directories.
+    pause
+    exit /b 1
+)
+if exist "src-tauri\Cargo.lock" (
+    echo [Rust] Synchronizing tauri crate in Cargo.lock...
+    where cargo >nul 2>&1 && (
+        pushd src-tauri
+        call cargo update -p tauri -p tauri-build >nul 2>&1
+        popd
+    )
+)
+echo.
+
+echo [5/6] Building web assets and compiling Tauri application...
+call npm run build
+if %errorlevel% neq 0 (
+    echo.
+    echo ERROR: Web build failed.
+    pause
+    exit /b 1
+)
+call npx tauri build --no-bundle
+if %errorlevel% neq 0 (
+    echo [Notice] Checking if compiled executable exists...
+)
+echo.
+
+echo [6/6] Generating versioned executable artifact...
+call node scripts/copy-release.js %APP_VERSION%
+if %errorlevel% neq 0 (
+    echo.
+    echo ERROR: Failed to generate release artifacts.
+    pause
+    exit /b 1
+)
+
+echo.
+echo Build process complete. Press any key to exit.
+echo.
+pause

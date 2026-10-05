@@ -1,0 +1,6 @@
+{
+  "name": "Windows Screensaver Setup Generator-end",
+  "description": "A fast utility to configure Windows 10/11 screensaver settings and export them as a single executable batch (.bat) file.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
