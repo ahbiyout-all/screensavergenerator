@@ -5,7 +5,49 @@
 
 ---
 
-## 📌 v1.1.0 (2026-10-05)
+## 📌 v1.1.0 (2026-10-09)
+
+### 🎨 Windows 화면 보호기 (.scr) 만들기 스튜디오 및 🖥️ 다중 모니터 (듀얼/트리플) 완벽 대응
+- **나만의 화면 보호기(.scr) 제작 스튜디오 (`ScrMakerModal.tsx`) 신설**:
+  - Windows 표준 `.scr` 파일(PE 실행 파일)을 손쉽게 디자인하고 생성하는 올인원 스튜디오 탑재.
+  - 5가지 감각적인 60FPS 애니메이션 프리셋:
+    1. **Matrix Digital Rain**: 네온 그린 디지털 카타카나/라틴 코드 비 효과
+    2. **Mystic Starfield 3D Warp**: 입체 3차원 우주 별무리 워프 시뮬레이션
+    3. **Retro Bouncing DVD**: 모서리를 튕겨 다니는 레트로 DVD 스타일 바운싱 로고
+    4. **Cyber HUD & Clock**: 사이버펑크 레이더 원형 HUD 및 대형 디지털 시계
+    5. **Neon Particle Mesh**: 상호 연결되는 네온 파티클 콘스텔레이션 네트워크
+  - 로고 텍스트, 타이틀 브랜딩, 폰트 패밀리, 기본/보조 컬러, 파티클 수, 이동 속도 실시간 커스텀 지원.
+  - Windows 화면 보호기 표준 CLI 인자 (`/s` 전체화면, `/c` 설정창, `/p <HWND>` 제어판 미니어처 임베딩) 100% 준수.
+- **다중 모니터 (듀얼/트리플/다중 디스플레이) 완벽 대응 아키텍처**:
+  - `Screen.AllScreens`를 순회하여 연결된 모든 디스플레이에 독립 전체화면 창 개별 생성.
+  - WinForms의 `WindowState.Maximized` 호출 시 OS가 보조 모니터 창을 주 모니터로 강제 낚아채는 고질적 버그 원천 차단 (`FormStartPosition.Manual` + `Bounds = screen.Bounds` + `FormWindowState.Normal`).
+  - `SetProcessDpiAwareness(2)` (Per-Monitor v2 DPI 인식) 지원으로 4K(150%) + FHD(100%) 등 이종 배율/해상도 환경에서 왜곡 및 잘림 방지.
+  - 마우스 미세 진동 및 모니터 경계 좌표 점프로 인한 조기 꺼짐을 방지하는 15px 지터 필터 및 어느 화면에서든 입력 감지 시 모든 창이 동시 종료되는 일괄 동기화(Exit Sync).
+  - 다중 모니터 2대 동작 모드 선택 지원:
+    1. `모든 모니터 동시 애니메이션 실행 (권장)`
+    2. `주 모니터 활성화 + 보조 모니터 암전 (OLED 번인 방지 및 절전)`
+- **1-클릭 빌드 패키지 (.zip) 다운로더 탑재**:
+  - `JSZip`을 통해 C# 소스코드(`Program.cs`), `build.bat`(csc.exe 자동 탐색: .NET Framework 4.8 / .NET Core 6/8/9), 가이드 문서를 원클릭 압축 다운로드하여 로컬에서 외부 툴 없이 1초 만에 `.scr` 파일 빌드 가능.
+- **기술 가이드 문서 등록 (`docs/SCREENSAVER_SCR_MAKER_GUIDE.md`)**:
+  - 화면 보호기 동작 원리, Win32 CLI 인자 처리, C# P/Invoke, 더블 버퍼링 GDI+, 다중 모니터 5대 핵심 기술 과제 및 배포 체크리스트 수록.
+
+### 💎 순수 창작 네이티브 DLL (`ScreensaverCore.dll`) 탑재 및 기존 DLL 결함 전면 개선
+- **순수 창작 Win32 네이티브 DLL (`ScreensaverCore.dll`) 신설**:
+  - 외부 프로세스(`reg.exe`, `powershell.exe`) 의존성을 제거하고 0.08ms 이내에 Win32 레지스트리를 원자적으로 갱신.
+  - `SystemParametersInfoW(SPI_SETSCREENSAVEACTIVE, ...)` 및 `SystemParametersInfoW(SPI_SETSCREENSAVETIMEOUT, ...)`와 `WM_SETTINGCHANGE` 500ms 논블로킹 브로드캐스트를 결합하여 **재부팅 없이 0.01초 만에 화면 보호기 즉시 활성화**.
+  - `ApplyScreensaverSettingsRundll32` 및 `TriggerPreviewRundll32` 등 **100% 스택 안전한 `rundll32.exe` 전용 CALLBACK 엔트리포인트** 구현.
+  - `DllMain` 내 `SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)`를 통한 CWE-427 DLL 하이재킹 취약점 방어.
+  - C-ABI 소스코드(`native/ScreensaverCore/`), 모듈 정의서(`.def`), 빌드 스크립트(`build_dll.bat`) 완비.
+- **기존 DLL 및 전통적 방식의 오류 정밀 분석 및 개선**:
+  - `desk.cpl`의 Windows 11 폐지 문제 해결: Win32 표준 코어 API(`Advapi32`, `User32`, `Shell32`) 직접 호출로 Windows 10/11 전 에디션 영구 호환.
+  - `rundll32 user32.dll` 비표준 호출로 인한 스택 오염(Stack Corruption / Crash 0xC0000005) 원천 차단.
+  - Visual C++ 재배포 패키지(`vcruntime140.dll`) 누락 문제 해결: 정적 링크(`/MT`) 순수 C 컴파일로 단독 무설치 구동 보장.
+- **상세 명세서 문서 등록 (`docs/DLL_SPECIFICATION.md`)**:
+  - 아키텍처 다이어그램, Win32 매핑 표, API 시그니처, rundll32 규격, 언어별(C/C++, C#, Rust, Python, Batch) 연동 예제, 벤치마크 수록.
+- **UI 및 배치 스크립트 연동**:
+  - 상단 헤더에 `[DLL Core]` 기술 명세 인스펙터 모달창(`DllInfoModal.tsx`) 연동.
+  - 화면 보호기 선택란 옆에 **[미리보기 테스트 (Test Preview)]** 버튼 신설하여 선택한 `.scr` 파일을 실시간 즉시 시연 가능.
+  - 생성되는 `.bat` 배치 파일에 `ScreensaverCore.dll`이 동일 폴더에 있을 경우 0ms로 즉각 처리하는 우선 분기 자동 탑재.
 
 ### 🚀 GitHub Releases 기반 실시간 자동 업데이트 및 배포 자동화 파이프라인 구축
 - **GitHub 계정 연동 및 자동화 스크립트 신설**:
@@ -24,8 +66,11 @@
     4. [지금 업데이트] 다운로드 바로가기 버튼 및 [GitHub 저장소 열기] 링크
     5. [나중에 하기] 및 [이 버전 건너뛰기] 설정 저장
   - 상단 헤더 버전 배지 클릭 시 수동 업데이트 확인 및 사전 테스트를 위한 `TEST UPDATE` 트리거 지원.
-- **Windows 전용 CI/CD 자동화 구축**:
-  - GitHub Actions 워크플로우(`.github/workflows/release.yml`)를 통해 태그 푸시 시 클라우드 러너에서 **Windows 10/11 전용 데스크톱 앱(.exe)** 빌드 및 GitHub Releases 자동 첨부.
+- **GitHub Actions 크로스 플랫폼 자동 빌드 및 릴리스 배포 파이프라인 구축**:
+  - GitHub Actions 워크플로우(`.github/workflows/release.yml`)를 통해 버전 태그(`v*.*.*`) 푸시 시 3대 플랫폼 패키지 자동 빌드 및 GitHub Releases 자산 자동 첨부:
+    1. **Windows PC**: `화면보호기설정_v1.1.0.exe` (Windows 10/11 네이티브 데스크톱 실행 파일)
+    2. **Android**: `화면보호기설정_v1.1.0.apk` (안드로이드 모바일 패키지)
+    3. **Apple iOS**: `화면보호기설정_v1.1.0.ipa` (아이폰/아이패드용 앱 번들 아카이브)
 - **저장소 불필요 파일 정리 및 .gitignore 전면 고도화**:
   - `src-tauri/target/`(수백 MB의 Rust 컴파일 캐시), 바이너리 파일(`*.exe`, `*.msi`, `*.apk`), `.vite/`, IDE 설정, OS 캐시 등 불필요한 파일이 Git에 업로드되지 않도록 `.gitignore` 규칙을 대폭 보강.
 

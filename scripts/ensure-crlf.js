@@ -6,6 +6,7 @@ const batFiles = [
   path.join(process.cwd(), 'push.bat'),
   path.join(process.cwd(), 'github-push.bat'),
   path.join(process.cwd(), 'scripts', 'github-push.bat'),
+  path.join(process.cwd(), 'native', 'ScreensaverCore', 'build_dll.bat'),
 ];
 
 for (const batPath of batFiles) {

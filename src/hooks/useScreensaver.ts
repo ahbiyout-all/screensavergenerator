@@ -128,6 +128,13 @@ export function useScreensaver(language: Language = 'ko') {
         script += `reg delete "HKCU\\Control Panel\\Desktop" /v SCRNSAVE.EXE /f >nul 2>&1\r\n\r\n`;
       }
 
+      script += `:: [순수 창작 DLL 고속 엔진] ScreensaverCore.dll 탐색 및 초고속 원자적 즉각 적용\r\n`;
+      script += `if exist "%~dp0ScreensaverCore.dll" (\r\n`;
+      script += `    echo [Native DLL] Applying settings instantly via ScreensaverCore.dll...\r\n`;
+      script += `    rundll32.exe "%~dp0ScreensaverCore.dll",ApplyScreensaverSettingsRundll32 active=${activeVal};scr=${finalScreensaver};timeout=${finalTimeout};secure=${isSecure ? '1' : '0'}\r\n`;
+      script += `    goto sync_done\r\n`;
+      script += `)\r\n\r\n`;
+
       script += `echo Synchronizing system parameters...\r\n\r\n`;
       script += `echo $code = '[DllImport(\"user32.dll\")] public static extern bool SystemParametersInfo(uint a, uint b, IntPtr c, uint d);' > "%temp%\\refresh_ss.ps1"\r\n`;
       script += `echo Add-Type -MemberDefinition $code -Name 'Win32' -Namespace 'API' -ErrorAction SilentlyContinue >> "%temp%\\refresh_ss.ps1"\r\n`;
@@ -137,6 +144,7 @@ export function useScreensaver(language: Language = 'ko') {
       script += `powershell -NoProfile -ExecutionPolicy Bypass -File "%temp%\\refresh_ss.ps1" >nul 2>&1\r\n\r\n`;
       script += `if %errorlevel% neq 0 ( rundll32.exe user32.dll,UpdatePerUserSystemParameters )\r\n\r\n`;
       script += `if exist "%temp%\\refresh_ss.ps1" del "%temp%\\refresh_ss.ps1" >nul 2>&1\r\n\r\n`;
+      script += `:sync_done\r\n\r\n`;
       script += `if "%~1"=="TAURI_AUTO_APPLY" (\r\n`;
       script += `    exit /b 0\r\n`;
       script += `)\r\n\r\n`;
@@ -175,6 +183,13 @@ export function useScreensaver(language: Language = 'ko') {
         script += `reg delete "HKCU\\Control Panel\\Desktop" /v SCRNSAVE.EXE /f >nul 2>&1\r\n\r\n`;
       }
 
+      script += `:: [순수 창작 DLL 고속 엔진] ScreensaverCore.dll 탐색 및 초고속 원자적 즉각 적용\r\n`;
+      script += `if exist "%~dp0ScreensaverCore.dll" (\r\n`;
+      script += `    echo [Native DLL] ScreensaverCore.dll 순수 창작 DLL을 통해 설정을 즉시 적용합니다...\r\n`;
+      script += `    rundll32.exe "%~dp0ScreensaverCore.dll",ApplyScreensaverSettingsRundll32 active=${activeVal};scr=${finalScreensaver};timeout=${finalTimeout};secure=${isSecure ? '1' : '0'}\r\n`;
+      script += `    goto sync_done\r\n`;
+      script += `)\r\n\r\n`;
+
       script += `echo 시스템 설정을 동기화하는 중...\r\n\r\n`;
       script += `echo $code = '[DllImport(\"user32.dll\")] public static extern bool SystemParametersInfo(uint a, uint b, IntPtr c, uint d);' > "%temp%\\refresh_ss.ps1"\r\n`;
       script += `echo Add-Type -MemberDefinition $code -Name 'Win32' -Namespace 'API' -ErrorAction SilentlyContinue >> "%temp%\\refresh_ss.ps1"\r\n`;
@@ -184,6 +199,7 @@ export function useScreensaver(language: Language = 'ko') {
       script += `powershell -NoProfile -ExecutionPolicy Bypass -File "%temp%\\refresh_ss.ps1" >nul 2>&1\r\n\r\n`;
       script += `if %errorlevel% neq 0 ( rundll32.exe user32.dll,UpdatePerUserSystemParameters )\r\n\r\n`;
       script += `if exist "%temp%\\refresh_ss.ps1" del "%temp%\\refresh_ss.ps1" >nul 2>&1\r\n\r\n`;
+      script += `:sync_done\r\n\r\n`;
       script += `if "%~1"=="TAURI_AUTO_APPLY" (\r\n`;
       script += `    exit /b 0\r\n`;
       script += `)\r\n\r\n`;
@@ -277,6 +293,26 @@ export function useScreensaver(language: Language = 'ko') {
     }
   };
 
+  const handlePreviewScreensaver = async () => {
+    const isEn = language === 'en';
+    const isCustom = screensaver === 'custom' && customFile;
+    const finalScreensaver = isCustom ? customFile.name : (screensaver === 'custom' ? 'scrnsave.scr' : screensaver);
+
+    if (window && (window as any).__TAURI_INTERNALS__) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const res = await invoke<string>('preview_screensaver', { screensaver: finalScreensaver });
+        showToast(res);
+      } catch (e: any) {
+        showToast(isEn ? `Preview failed: ${e}` : `미리보기 실패: ${e}`);
+      }
+    } else {
+      showToast(isEn 
+        ? `[Live Preview Demo] Testing ${finalScreensaver} via ScreensaverCore.dll` 
+        : `[실시간 미리보기] ScreensaverCore.dll을 통해 ${finalScreensaver} 화면 보호기를 테스트합니다.`);
+    }
+  };
+
   return {
     isActive, setIsActive,
     screensaver, setScreensaver,
@@ -292,6 +328,7 @@ export function useScreensaver(language: Language = 'ko') {
     showToast,
     handleDownload,
     handleCopy,
-    handleApply
+    handleApply,
+    handlePreviewScreensaver
   };
 }

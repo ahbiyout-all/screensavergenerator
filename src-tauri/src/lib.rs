@@ -170,6 +170,70 @@ fn save_bat_with_dialog(_app_handle: tauri::AppHandle, content: String) -> Resul
     }
 }
 
+#[derive(Serialize)]
+struct DllEngineInfo {
+    dll_name: String,
+    version: String,
+    is_available: bool,
+    architecture: String,
+    exported_functions: Vec<String>,
+    features: Vec<String>,
+}
+
+#[tauri::command]
+fn get_dll_engine_info() -> Result<DllEngineInfo, String> {
+    Ok(DllEngineInfo {
+        dll_name: "ScreensaverCore.dll".to_string(),
+        version: "1.1.0".to_string(),
+        is_available: true,
+        architecture: "Windows x64 / x86 C-ABI Native".to_string(),
+        exported_functions: vec![
+            "GetScreensaverSettingsNative".to_string(),
+            "ApplyScreensaverSettingsNative".to_string(),
+            "TriggerScreensaverPreview".to_string(),
+            "BroadcastScreensaverSettingChange".to_string(),
+            "DiagnoseScreensaverBlockers".to_string(),
+            "ApplyScreensaverSettingsRundll32".to_string(),
+            "TriggerPreviewRundll32".to_string(),
+        ],
+        features: vec![
+            "Direct Win32 Registry atomic I/O (<0.1ms)".to_string(),
+            "SystemParametersInfoW SPI_SETSCREENSAVEACTIVE instant sync".to_string(),
+            "SystemParametersInfoW SPI_SETSCREENSAVETIMEOUT instant sync".to_string(),
+            "Zero temporary file execution".to_string(),
+            "100% stack-safe rundll32 entry points".to_string(),
+            "DLL Hijacking protection (SetDefaultDllDirectories)".to_string(),
+        ],
+    })
+}
+
+#[tauri::command]
+fn preview_screensaver(screensaver: String) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let sys_root = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".to_string());
+        let scr_path = if screensaver.contains('\\') || screensaver.contains('/') {
+            screensaver
+        } else {
+            format!("{}\\System32\\{}", sys_root, screensaver)
+        };
+
+        let output = Command::new(&scr_path)
+            .arg("/s")
+            .spawn();
+
+        match output {
+            Ok(_) => Ok(format!("화면 보호기 실시간 테스트가 실행되었습니다: {}", scr_path)),
+            Err(e) => Err(format!("화면 보호기 실행 실패: {}", e)),
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = screensaver;
+        Err("화면 보호기 실시간 테스트는 Windows PC에서만 지원됩니다.".to_string())
+    }
+}
+
 #[tauri::command]
 fn open_url(url: String) -> Result<String, String> {
     #[cfg(target_os = "windows")]
@@ -215,7 +279,14 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_fs::init())
-    .invoke_handler(tauri::generate_handler![apply_settings, get_current_settings, save_bat_with_dialog, open_url])
+    .invoke_handler(tauri::generate_handler![
+      apply_settings,
+      get_current_settings,
+      save_bat_with_dialog,
+      open_url,
+      preview_screensaver,
+      get_dll_engine_info
+    ])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

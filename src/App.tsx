@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Monitor, Download, Copy, Check, Shield, Clock, FileCode2, Upload, Trash2, Loader2, Info, AlertTriangle, ExternalLink, Sparkles, RefreshCw } from 'lucide-react';
+import { Monitor, Download, Copy, Check, Shield, Clock, FileCode2, Upload, Trash2, Loader2, Info, AlertTriangle, ExternalLink, Sparkles, RefreshCw, Play, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toggle } from './components/Toggle';
 import { LanguageSwitch } from './components/LanguageSwitch';
 import { UpdateModal } from './components/UpdateModal';
+import { DllInfoModal } from './components/DllInfoModal';
+import { ScrMakerModal } from './components/ScrMakerModal';
 import { useScreensaver } from './hooks/useScreensaver';
 import { useUpdateChecker } from './hooks/useUpdateChecker';
 import { Language, TRANSLATIONS, SCREENSAVERS_DATA } from './i18n';
@@ -11,6 +13,9 @@ import { APP_VERSION, GITHUB_REPO, GITHUB_REPO_URL } from './version';
 
 export default function App() {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showDllModal, setShowDllModal] = useState(false);
+  const [showScrMakerModal, setShowScrMakerModal] = useState(false);
+  const [extraScreensavers, setExtraScreensavers] = useState<Array<{ id: string; name: { ko: string; en: string } }>>([]);
   const [lang, setLang] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('app_language');
@@ -55,7 +60,8 @@ export default function App() {
     showToast,
     handleDownload,
     handleCopy,
-    handleApply
+    handleApply,
+    handlePreviewScreensaver,
   } = useScreensaver(lang);
 
   if (isFetching) {
@@ -69,9 +75,23 @@ export default function App() {
     );
   }
 
+  const allScreensavers = [...SCREENSAVERS_DATA, ...extraScreensavers];
+
   const getScreensaverName = (id: string) => {
-    const found = SCREENSAVERS_DATA.find(s => s.id.toLowerCase() === id.toLowerCase());
+    const found = allScreensavers.find(s => s.id.toLowerCase() === id.toLowerCase());
     return found ? found.name[lang].split(' (')[0] : id;
+  };
+
+  const handleRegisterCustomScreensaver = (scrFileName: string, displayName: string) => {
+    setExtraScreensavers(prev => {
+      const exists = prev.some(item => item.id.toLowerCase() === scrFileName.toLowerCase());
+      if (exists) return prev;
+      return [...prev, {
+        id: scrFileName,
+        name: { ko: displayName, en: displayName }
+      }];
+    });
+    setScreensaver(scrFileName);
   };
 
   const handleOpenExternalUrl = async (e: React.MouseEvent, url: string) => {
@@ -170,6 +190,24 @@ export default function App() {
               >
                 TEST UPDATE
               </button>
+
+              <button
+                onClick={() => setShowDllModal(true)}
+                title={t.dllSpecModalTitle}
+                className="text-[9px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-1.5 py-0.5 rounded border border-slate-300 flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              >
+                <Cpu className="w-2.5 h-2.5 text-blue-600" />
+                <span>DLL Core</span>
+              </button>
+
+              <button
+                onClick={() => setShowScrMakerModal(true)}
+                title={t.scrMakerTitle}
+                className="text-[9px] bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold px-2 py-0.5 rounded shadow-sm flex items-center gap-1 transition-all cursor-pointer shrink-0"
+              >
+                <Sparkles className="w-2.5 h-2.5" />
+                <span>{lang === 'ko' ? '.scr 제작' : '.SCR Studio'}</span>
+              </button>
             </div>
             <p className="text-[11px] text-neutral-500 truncate">{t.subtitle}</p>
           </div>
@@ -207,16 +245,38 @@ export default function App() {
 
           <div className={`space-y-3.5 transition-opacity duration-200 ${!isActive ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="space-y-1">
-              <label className="font-medium text-sm text-neutral-900 flex items-center gap-1.5">
-                <Monitor className="w-3.5 h-3.5 text-neutral-500" />
-                {t.screensaverType}
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="font-medium text-sm text-neutral-900 flex items-center gap-1.5">
+                  <Monitor className="w-3.5 h-3.5 text-neutral-500" />
+                  {t.screensaverType}
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowScrMakerModal(true)}
+                    title={t.scrMakerTitle}
+                    className="text-[11px] font-medium text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-cyan-600" />
+                    <span>{t.scrMakerBtn}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePreviewScreensaver}
+                    title={t.testPreviewDesc}
+                    className="text-[11px] font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Play className="w-2.5 h-2.5 fill-current" />
+                    <span>{t.testPreview}</span>
+                  </button>
+                </div>
+              </div>
               <select 
                 value={screensaver}
                 onChange={(e) => setScreensaver(e.target.value)}
                 className="w-full bg-neutral-50 border border-neutral-300 text-neutral-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 transition-colors"
               >
-                {SCREENSAVERS_DATA.map(s => (
+                {allScreensavers.map(s => (
                   <option key={s.id} value={s.id}>{s.name[lang]}</option>
                 ))}
               </select>
@@ -386,6 +446,19 @@ export default function App() {
         lang={lang}
         onOpenUrl={(url) => handleOpenExternalUrl({ preventDefault: () => {} } as React.MouseEvent, url)}
         onSkipVersion={(neverShowAgain) => dismissUpdate(neverShowAgain)}
+      />
+
+      <DllInfoModal
+        isOpen={showDllModal}
+        onClose={() => setShowDllModal(false)}
+        lang={lang}
+      />
+
+      <ScrMakerModal
+        isOpen={showScrMakerModal}
+        onClose={() => setShowScrMakerModal(false)}
+        lang={lang}
+        onRegisterScreensaver={handleRegisterCustomScreensaver}
       />
 
       <AnimatePresence>

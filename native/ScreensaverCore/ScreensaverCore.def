@@ -1,0 +1,9 @@
+LIBRARY ScreensaverCore
+EXPORTS
+    GetScreensaverSettingsNative      @1
+    ApplyScreensaverSettingsNative    @2
+    TriggerScreensaverPreview         @3
+    BroadcastScreensaverSettingChange @4
+    DiagnoseScreensaverBlockers       @5
+    ApplyScreensaverSettingsRundll32  @6
+    TriggerPreviewRundll32            @7

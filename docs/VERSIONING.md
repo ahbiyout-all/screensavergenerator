@@ -47,20 +47,22 @@
 
 | 순번 | 대상 파일 | 수정 항목 | 설명 |
 |---|---|---|---|
-| 1 | `package.json` | `"version": "x.y.z"` | Node.js 프로젝트 기준 버전 |
+| 1 | `package.json` | `"version": "x.y.z"` | Node.js 프로젝트 기준 버전 (Single Source of Truth) |
 | 2 | `src-tauri/tauri.conf.json` | `"version": "x.y.z"` | Tauri 실행 파일 메타데이터 버전 |
 | 3 | `src/App.tsx` | 헤더 배지 & 푸터 텍스트 | 사용자 화면(UI)에 노출되는 버전 배지 |
 | 4 | `scripts/generate-bat.js` | fallback 버전 및 build.bat 생성 | `node scripts/generate-bat.js` 실행 |
 | 5 | `scripts/copy-release.js` | fallback 버전 | 릴리스 복사본 파일명 (`화면보호기설정_vx.y.z.exe`) |
-| 6 | `docs/PATCH_NOTES.md` | `## 📌 vx.y.z (YYYY-MM-DD)` | 변경 사항, 원인 및 해결책 기록 |
-| 7 | `docs/README.md` | 버전 및 변경 내역 안내 | 프로젝트 전반 안내문 동기화 |
+| 6 | `docs/PATCHNOTES.md` / `PATCH_NOTES.md` | `## 📌 vx.y.z (YYYY-MM-DD)` | 변경 사항, 원인 및 해결책 기록 |
+| 7 | `docs/README.md` & `MANUAL.md` | 버전 및 변경 내역 안내 | 프로젝트 전반 안내문 및 사용자 매뉴얼 동기화 |
+| 8 | `docs/WorkLog.md` | 작업 로그 갱신 | 개발 작업 내역 및 산출물 파일 기록 |
+| 9 | `docs/BLOG_POST.md` | 블로그 게시 원고 동기화 | 공식 구글 블로그 소개글 및 릴리스 노트 갱신 |
 
 ---
 
 ## 3. 자동 빌드 및 릴리스 파일 생성 흐름
 
 1. Windows 환경에서 `build.bat` 실행 (또는 `npm run build:exe`)
-2. 사용자 포트 번호 입력 (기본값: 3000)
+2. 사용자 포트 번호 입력 (기본값: 3036)
 3. `build.bat`가 `package.json`의 `version` 필드를 자동 추출 (`APP_VERSION`)
 4. Web 빌드(`vite build`) 및 Tauri 컴파일(`tauri build --no-bundle`) 수행
 5. `scripts/copy-release.js`가 컴파일된 실행 파일을 감지하여:
